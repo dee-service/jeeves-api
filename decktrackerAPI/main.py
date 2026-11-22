@@ -45,6 +45,13 @@ async def health() -> dict:
     return {"status": "ok"}
 
 
+@app.get("/API/check")
+async def check_token(token: TokenRecord = Depends(get_current_token)) -> dict:
+    # Key check for the HSJeeves "Test connection" button: 200 for a valid, non-revoked
+    # token (auth also bumps last_used_at), 401 otherwise. Stores nothing.
+    return {"status": "ok"}
+
+
 @app.post("/API", response_model=UploadResponse)
 async def upload_match(request: Request, token: TokenRecord = Depends(get_current_token)):
     # Auth (Depends above) is resolved before this body runs, so an unauthenticated or
