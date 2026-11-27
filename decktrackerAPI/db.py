@@ -95,3 +95,17 @@ async def _migrate(conn: asyncpg.Connection) -> None:
         CREATE INDEX IF NOT EXISTS idx_rank_tracker_matches_battletag_ci
             ON rank_tracker_matches (LOWER(player_battletag), end_time DESC);
     """)
+
+    # Additive: season stats uploaded by HSJeeves (post-game season record). Nullable;
+    # pre-migration rows stay NULL and are not backfilled. The index serves
+    # "latest row per player" lookups, e.g.
+    #   SELECT DISTINCT ON (LOWER(player_battletag), region, format) ...
+    #   ORDER BY LOWER(player_battletag), region, format, end_time DESC
+    await conn.execute("""
+        ALTER TABLE rank_tracker_matches ADD COLUMN IF NOT EXISTS season_wins  INTEGER;
+        ALTER TABLE rank_tracker_matches ADD COLUMN IF NOT EXISTS season_games INTEGER;
+        ALTER TABLE rank_tracker_matches ADD COLUMN IF NOT EXISTS win_streak   INTEGER;
+
+        CREATE INDEX IF NOT EXISTS idx_rank_tracker_matches_latest_per_player
+            ON rank_tracker_matches (LOWER(player_battletag), region, format, end_time DESC);
+    """)
