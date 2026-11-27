@@ -44,7 +44,8 @@ docker compose exec rank-api python -m decktrackerAPI.admin_tokens create <name>
 
 - `<name>` is a unique label for the app (e.g. `web-app`, `discord-bot`). A duplicate name is refused.
 - `--scopes` is a comma-separated list, free text (e.g. `rank:read`). It may be empty. A route protected with
-  `require_scope("rank:read")` needs that exact scope on the token.
+  `require_scope("rank:read")` needs that exact scope on the token. The read endpoints (see
+  [read-api.md](read-api.md)) require **`rank:read`**.
 - The plaintext token is printed **once**. Copy it into the consuming app's secret store right away. It cannot be
   shown again; if lost, revoke it and create a new one.
 

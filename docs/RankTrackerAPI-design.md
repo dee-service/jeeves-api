@@ -116,7 +116,8 @@ CREATE INDEX IF NOT EXISTS idx_rank_tracker_matches_battletag_ci
 bearer token is generated, handed to the user once, and never persisted.
 `rank_tracker_matches.game_id` is the primary key, enforcing the
 idempotency requirement directly at the DB level (`ON CONFLICT (game_id) DO
-NOTHING`). `region` is nullable and normalized to uppercase on ingest
+NOTHING`). `region` is required on new uploads (400 if missing/blank); the column stays nullable only for
+rows stored before that, and the value is normalized to uppercase on ingest
 (`decktrackerAPI/models.py:MatchUpload._normalize_region`) — expected values
 are `EU`/`US`/`AP`/`UNKNOWN`/`CHINA` per `payload-definition.md`'s "Region"
 section; anything else is still stored (just logged as unrecognized) rather
@@ -253,9 +254,10 @@ Cloudflare Tunnel token:
       `rank_tracker_matches`, plus a case-insensitive battletag lookup index,
       for the bot's Bronze→Diamond chart queries (`/rankchart`, `/rcc`) to
       scope matches by region — see `../ToDo.MD` Phase 13/14+.
-- [x] `MatchUpload.region` accepts the plugin's new `region` field (optional,
-      for backward compatibility with pre-region plugin builds), normalized
-      to uppercase, logged (not rejected) on an unrecognized value.
+- [x] `MatchUpload.region` accepts the plugin's new `region` field (now
+      required: uploads without it get 400; originally optional for pre-region
+      plugin builds), normalized to uppercase, logged (not rejected) on an
+      unrecognized non-blank value.
 
 ### Future
 - [ ] Endpoints/commands to query `rank_tracker_matches` back out

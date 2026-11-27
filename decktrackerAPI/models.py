@@ -53,9 +53,9 @@ class MatchUpload(BaseModel):
     format: str
     result: str
     was_conceded: Annotated[bool, Field(alias="wasConceded")]
-    # Optional: added to the payload after schemaVersion 1 shipped, so older plugin
-    # builds may still omit it. Older uploads land with region = NULL in the DB.
-    region: Optional[str] = None
+    # Required: uploads without a region are rejected (400). Pre-region rows already in the
+    # DB keep region = NULL (the column stays nullable); new rows always have one.
+    region: str
     player_battletag: Annotated[str, Field(alias="playerBattleTag")]
     opponent_battletag: Annotated[str, Field(alias="opponentBattleTag")]
     rank: RankInfo
@@ -69,10 +69,10 @@ class MatchUpload(BaseModel):
 
     @field_validator("region")
     @classmethod
-    def _normalize_region(cls, value: Optional[str]) -> Optional[str]:
-        if value is None:
-            return None
+    def _normalize_region(cls, value: str) -> str:
         normalized = value.strip().upper()
+        if not normalized:
+            raise ValueError("region must not be empty")
         if normalized not in _KNOWN_REGIONS:
             logger.warning("Unrecognized region %r in /API payload — storing as-is", value)
         return normalized

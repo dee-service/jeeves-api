@@ -15,6 +15,7 @@ from pydantic import ValidationError
 from decktrackerAPI.auth import TokenRecord, get_current_token
 from decktrackerAPI.db import close_db_pool, get_db, init_db_pool
 from decktrackerAPI.models import MatchUpload, UploadResponse
+from decktrackerAPI.read_api import router as read_router
 
 logger = logging.getLogger(__name__)
 
@@ -27,17 +28,17 @@ async def lifespan(app: FastAPI):
 
 
 app = FastAPI(title="RankTrackerAPI", lifespan=lifespan)
+app.include_router(read_router)
 
 
 @app.exception_handler(RequestValidationError)
 async def malformed_body_handler(request: Request, exc: RequestValidationError) -> JSONResponse:
     # payload-definition.md: any malformed/mismatched body is a 400, not FastAPI's default 422.
-    # include_input=False: pydantic echoes back the raw offending value (which can be raw
-    # bytes for a JSON-decode failure) and that isn't always JSON-serializable itself.
-    return JSONResponse(
-        status_code=400,
-        content={"status": "error", "detail": exc.errors(include_url=False, include_input=False)},
-    )
+    # FastAPI's RequestValidationError.errors() takes no options (unlike pydantic's), so drop
+    # `input` (the raw offending value, which can be raw bytes for a JSON-decode failure),
+    # `url` and `ctx` (may hold exception objects) by hand: they aren't always JSON-serializable.
+    detail = [{k: v for k, v in e.items() if k not in ("input", "url", "ctx")} for e in exc.errors()]
+    return JSONResponse(status_code=400, content={"status": "error", "detail": detail})
 
 
 @app.get("/health")
@@ -69,7 +70,7 @@ async def upload_match(request: Request, token: TokenRecord = Depends(get_curren
             status_code=400,
             content={
                 "status": "error",
-                "detail": exc.errors(include_url=False, include_input=False),
+                "detail": exc.errors(include_url=False, include_input=False, include_context=False),
             },
         )
 

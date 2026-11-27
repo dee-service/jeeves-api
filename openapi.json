@@ -5,6 +5,247 @@
     "version": "0.1.0"
   },
   "paths": {
+    "/API/leaderboard": {
+      "get": {
+        "tags": [
+          "read"
+        ],
+        "summary": "Leaderboard",
+        "operationId": "leaderboard_API_leaderboard_get",
+        "parameters": [
+          {
+            "name": "format",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "enum": [
+                "Standard",
+                "Wild",
+                "Classic",
+                "Twist"
+              ],
+              "type": "string",
+              "default": "Standard",
+              "title": "Format"
+            }
+          },
+          {
+            "name": "region",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "EU, US, AP, ... (case-insensitive); omit for all",
+              "title": "Region"
+            },
+            "description": "EU, US, AP, ... (case-insensitive); omit for all"
+          },
+          {
+            "name": "sort",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "enum": [
+                "wins",
+                "games",
+                "streak",
+                "winrate"
+              ],
+              "type": "string",
+              "default": "wins",
+              "title": "Sort"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "maximum": 100,
+              "minimum": 1,
+              "default": 50,
+              "title": "Limit"
+            }
+          },
+          {
+            "name": "offset",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 0,
+              "default": 0,
+              "title": "Offset"
+            }
+          },
+          {
+            "name": "authorization",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LeaderboardResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/API/player/{region}/{battletag}/stats": {
+      "get": {
+        "tags": [
+          "read"
+        ],
+        "summary": "Player Stats",
+        "description": "Battletags contain '#': send it URL-encoded as %23 (e.g. Player%231234).",
+        "operationId": "player_stats_API_player__region___battletag__stats_get",
+        "parameters": [
+          {
+            "name": "region",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Region"
+            }
+          },
+          {
+            "name": "battletag",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Battletag"
+            }
+          },
+          {
+            "name": "format",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "enum": [
+                    "Standard",
+                    "Wild",
+                    "Classic",
+                    "Twist"
+                  ],
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Limit history (and latest) to one format",
+              "title": "Format"
+            },
+            "description": "Limit history (and latest) to one format"
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "maximum": 100,
+              "minimum": 1,
+              "description": "History page size",
+              "default": 20,
+              "title": "Limit"
+            },
+            "description": "History page size"
+          },
+          {
+            "name": "offset",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 0,
+              "description": "History offset",
+              "default": 0,
+              "title": "Offset"
+            },
+            "description": "History offset"
+          },
+          {
+            "name": "authorization",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PlayerStatsResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/health": {
       "get": {
         "summary": "Health",
@@ -134,6 +375,294 @@
         },
         "type": "object",
         "title": "HTTPValidationError"
+      },
+      "HistoryPage": {
+        "properties": {
+          "total": {
+            "type": "integer",
+            "title": "Total"
+          },
+          "limit": {
+            "type": "integer",
+            "title": "Limit"
+          },
+          "offset": {
+            "type": "integer",
+            "title": "Offset"
+          },
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/MatchEntry"
+            },
+            "type": "array",
+            "title": "Items"
+          }
+        },
+        "type": "object",
+        "required": [
+          "total",
+          "limit",
+          "offset",
+          "items"
+        ],
+        "title": "HistoryPage"
+      },
+      "LeaderboardResponse": {
+        "properties": {
+          "format": {
+            "type": "string",
+            "title": "Format"
+          },
+          "region": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Region"
+          },
+          "sort": {
+            "type": "string",
+            "title": "Sort"
+          },
+          "total": {
+            "type": "integer",
+            "title": "Total"
+          },
+          "limit": {
+            "type": "integer",
+            "title": "Limit"
+          },
+          "offset": {
+            "type": "integer",
+            "title": "Offset"
+          },
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/PlayerStats"
+            },
+            "type": "array",
+            "title": "Items"
+          }
+        },
+        "type": "object",
+        "required": [
+          "format",
+          "region",
+          "sort",
+          "total",
+          "limit",
+          "offset",
+          "items"
+        ],
+        "title": "LeaderboardResponse"
+      },
+      "MatchEntry": {
+        "properties": {
+          "gameId": {
+            "type": "string",
+            "title": "Gameid"
+          },
+          "endTime": {
+            "type": "string",
+            "title": "Endtime"
+          },
+          "format": {
+            "type": "string",
+            "title": "Format"
+          },
+          "result": {
+            "type": "string",
+            "title": "Result"
+          },
+          "wasConceded": {
+            "type": "boolean",
+            "title": "Wasconceded"
+          },
+          "opponentBattleTag": {
+            "type": "string",
+            "title": "Opponentbattletag"
+          },
+          "seasonWins": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Seasonwins"
+          },
+          "seasonGames": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Seasongames"
+          },
+          "winStreak": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Winstreak"
+          },
+          "starLevelAfter": {
+            "type": "integer",
+            "title": "Starlevelafter"
+          },
+          "starsAfter": {
+            "type": "integer",
+            "title": "Starsafter"
+          },
+          "legendRankAfter": {
+            "type": "integer",
+            "title": "Legendrankafter"
+          }
+        },
+        "type": "object",
+        "required": [
+          "gameId",
+          "endTime",
+          "format",
+          "result",
+          "wasConceded",
+          "opponentBattleTag",
+          "seasonWins",
+          "seasonGames",
+          "winStreak",
+          "starLevelAfter",
+          "starsAfter",
+          "legendRankAfter"
+        ],
+        "title": "MatchEntry"
+      },
+      "PlayerStats": {
+        "properties": {
+          "battleTag": {
+            "type": "string",
+            "title": "Battletag"
+          },
+          "region": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Region"
+          },
+          "format": {
+            "type": "string",
+            "title": "Format"
+          },
+          "seasonWins": {
+            "type": "integer",
+            "title": "Seasonwins"
+          },
+          "seasonGames": {
+            "type": "integer",
+            "title": "Seasongames"
+          },
+          "winStreak": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Winstreak"
+          },
+          "winRate": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Winrate",
+            "description": "seasonWins / seasonGames, 0..1"
+          },
+          "starLevel": {
+            "type": "integer",
+            "title": "Starlevel"
+          },
+          "stars": {
+            "type": "integer",
+            "title": "Stars"
+          },
+          "legendRank": {
+            "type": "integer",
+            "title": "Legendrank"
+          },
+          "lastMatchAt": {
+            "type": "string",
+            "title": "Lastmatchat"
+          }
+        },
+        "type": "object",
+        "required": [
+          "battleTag",
+          "region",
+          "format",
+          "seasonWins",
+          "seasonGames",
+          "winStreak",
+          "winRate",
+          "starLevel",
+          "stars",
+          "legendRank",
+          "lastMatchAt"
+        ],
+        "title": "PlayerStats"
+      },
+      "PlayerStatsResponse": {
+        "properties": {
+          "battleTag": {
+            "type": "string",
+            "title": "Battletag"
+          },
+          "region": {
+            "type": "string",
+            "title": "Region"
+          },
+          "latest": {
+            "items": {
+              "$ref": "#/components/schemas/PlayerStats"
+            },
+            "type": "array",
+            "title": "Latest"
+          },
+          "history": {
+            "$ref": "#/components/schemas/HistoryPage"
+          }
+        },
+        "type": "object",
+        "required": [
+          "battleTag",
+          "region",
+          "latest",
+          "history"
+        ],
+        "title": "PlayerStatsResponse"
       },
       "UploadResponse": {
         "properties": {
