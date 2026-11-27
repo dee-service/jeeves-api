@@ -60,6 +60,12 @@ class MatchUpload(BaseModel):
     opponent_battletag: Annotated[str, Field(alias="opponentBattleTag")]
     rank: RankInfo
     rank_after: Annotated[RankAfterInfo, Field(alias="rankAfter")]
+    # schemaVersion 2: season record after the match, top-level camelCase (not nested in
+    # rankAfter). Optional so schemaVersion 1 payloads (which omit them) stay valid and
+    # land with NULL columns. schemaVersion itself is not validated: 1 and 2 are both accepted.
+    season_wins: Annotated[Optional[int], Field(alias="seasonWins")] = None
+    season_games: Annotated[Optional[int], Field(alias="seasonGames")] = None
+    win_streak: Annotated[Optional[int], Field(alias="winStreak")] = None
 
     @field_validator("region")
     @classmethod
