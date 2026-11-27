@@ -12,10 +12,10 @@ database.
 The service is exposed publicly through a Cloudflare Tunnel (`cloudflared`),
 since the host it runs on has no public IP.
 
-See the repo root's `payload-definition.md` for the exact upstream payload
+See `payload-definition.md` (same folder) for the exact upstream payload
 contract this service implements against (request/response shape, field
-list, idempotency requirement). That doc is local/git-ignored — this design
-doc is the tracked, canonical reference going forward.
+list, idempotency requirement). It is tracked in this repo and is the
+canonical payload contract; this design doc covers the service around it.
 
 ## Architecture
 

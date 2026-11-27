@@ -1,7 +1,7 @@
 """
 RankTrackerAPI — ingests per-match rank uploads from the RankTrackerPlugin
-(Hearthstone Deck Tracker plugin). See RankTrackerAPI-design.md and the
-repo's payload-definition.md for the full contract.
+(Hearthstone Deck Tracker plugin). See docs/RankTrackerAPI-design.md and
+docs/payload-definition.md for the full contract.
 """
 import json
 import logging
