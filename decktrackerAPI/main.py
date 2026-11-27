@@ -1,7 +1,7 @@
 """
 RankTrackerAPI — ingests per-match rank uploads from the RankTrackerPlugin
-(Hearthstone Deck Tracker plugin). See RankTrackerAPI-design.md and the
-repo's payload-definition.md for the full contract.
+(Hearthstone Deck Tracker plugin). See docs/RankTrackerAPI-design.md and
+docs/payload-definition.md for the full contract.
 """
 import json
 import logging
@@ -15,6 +15,7 @@ from pydantic import ValidationError
 from decktrackerAPI.auth import TokenRecord, get_current_token
 from decktrackerAPI.db import close_db_pool, get_db, init_db_pool
 from decktrackerAPI.models import MatchUpload, UploadResponse
+from decktrackerAPI.read_api import router as read_router
 
 logger = logging.getLogger(__name__)
 
@@ -27,17 +28,17 @@ async def lifespan(app: FastAPI):
 
 
 app = FastAPI(title="RankTrackerAPI", lifespan=lifespan)
+app.include_router(read_router)
 
 
 @app.exception_handler(RequestValidationError)
 async def malformed_body_handler(request: Request, exc: RequestValidationError) -> JSONResponse:
     # payload-definition.md: any malformed/mismatched body is a 400, not FastAPI's default 422.
-    # include_input=False: pydantic echoes back the raw offending value (which can be raw
-    # bytes for a JSON-decode failure) and that isn't always JSON-serializable itself.
-    return JSONResponse(
-        status_code=400,
-        content={"status": "error", "detail": exc.errors(include_url=False, include_input=False)},
-    )
+    # FastAPI's RequestValidationError.errors() takes no options (unlike pydantic's), so drop
+    # `input` (the raw offending value, which can be raw bytes for a JSON-decode failure),
+    # `url` and `ctx` (may hold exception objects) by hand: they aren't always JSON-serializable.
+    detail = [{k: v for k, v in e.items() if k not in ("input", "url", "ctx")} for e in exc.errors()]
+    return JSONResponse(status_code=400, content={"status": "error", "detail": detail})
 
 
 @app.get("/health")
@@ -69,7 +70,7 @@ async def upload_match(request: Request, token: TokenRecord = Depends(get_curren
             status_code=400,
             content={
                 "status": "error",
-                "detail": exc.errors(include_url=False, include_input=False),
+                "detail": exc.errors(include_url=False, include_input=False, include_context=False),
             },
         )
 
@@ -80,12 +81,14 @@ async def upload_match(request: Request, token: TokenRecord = Depends(get_curren
                 game_id, token_id, schema_version, start_time, end_time, game_mode, format,
                 result, was_conceded, region, player_battletag, opponent_battletag,
                 league_id, rank, star_level, stars, legend_rank,
-                star_level_after, stars_after, legend_rank_after
+                star_level_after, stars_after, legend_rank_after,
+                season_wins, season_games, win_streak
             ) VALUES (
                 $1, $2, $3, $4, $5, $6, $7,
                 $8, $9, $10, $11, $12,
                 $13, $14, $15, $16, $17,
-                $18, $19, $20
+                $18, $19, $20,
+                $21, $22, $23
             )
             ON CONFLICT (game_id) DO NOTHING
             """,
@@ -109,6 +112,9 @@ async def upload_match(request: Request, token: TokenRecord = Depends(get_curren
             payload.rank_after.star_level_after,
             payload.rank_after.stars_after,
             payload.rank_after.legend_rank_after,
+            payload.season_wins,
+            payload.season_games,
+            payload.win_streak,
         )
 
     # Repeat POST of the same gameId is a safe no-op — never an error.

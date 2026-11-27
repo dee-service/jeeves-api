@@ -1,7 +1,7 @@
 """
 Async PostgreSQL database layer for RankTrackerAPI.
 
-Owns and migrates its own tables (rank_api_tokens, rank_tracker_matches) in the
+Owns and migrates its own tables (rank_api_tokens, api_app_tokens, rank_tracker_matches) in the
 same Postgres instance/database the bot uses, independently of bot/services/db.py.
 """
 import asyncio
@@ -94,4 +94,32 @@ async def _migrate(conn: asyncpg.Connection) -> None:
 
         CREATE INDEX IF NOT EXISTS idx_rank_tracker_matches_battletag_ci
             ON rank_tracker_matches (LOWER(player_battletag), end_time DESC);
+    """)
+
+    # Read-API app tokens: a separate namespace from rank_api_tokens (the per-user HSJeeves
+    # upload tokens), so a user token can never authorise a read. Hash only, never plaintext.
+    await conn.execute("""
+        CREATE TABLE IF NOT EXISTS api_app_tokens (
+            id           SERIAL PRIMARY KEY,
+            name         TEXT NOT NULL UNIQUE,
+            token_hash   TEXT NOT NULL UNIQUE,
+            scopes       TEXT[] NOT NULL DEFAULT '{}',
+            enabled      BOOLEAN NOT NULL DEFAULT TRUE,
+            created_at   TIMESTAMPTZ NOT NULL DEFAULT now(),
+            last_used_at TIMESTAMPTZ
+        );
+    """)
+
+    # Additive: season stats uploaded by HSJeeves (post-game season record). Nullable;
+    # pre-migration rows stay NULL and are not backfilled. The index serves
+    # "latest row per player" lookups, e.g.
+    #   SELECT DISTINCT ON (LOWER(player_battletag), region, format) ...
+    #   ORDER BY LOWER(player_battletag), region, format, end_time DESC
+    await conn.execute("""
+        ALTER TABLE rank_tracker_matches ADD COLUMN IF NOT EXISTS season_wins  INTEGER;
+        ALTER TABLE rank_tracker_matches ADD COLUMN IF NOT EXISTS season_games INTEGER;
+        ALTER TABLE rank_tracker_matches ADD COLUMN IF NOT EXISTS win_streak   INTEGER;
+
+        CREATE INDEX IF NOT EXISTS idx_rank_tracker_matches_latest_per_player
+            ON rank_tracker_matches (LOWER(player_battletag), region, format, end_time DESC);
     """)
